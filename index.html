@@ -8,7 +8,7 @@
 <body>
 
 <header>
-  <a href="parents.html" class="top-link">صفحة الدرجات</a>
+  <a href="parents.html" class="top-link">صفحة الدرجات للأهل</a>
 </header>
 
 <h2>تسجيل دخول المعلم</h2>
@@ -113,19 +113,35 @@ function saveTest() {
   const testScore = parseInt(document.getElementById('testScore').value); 
   const finalScore = testType==='نهائي' ? parseInt(document.getElementById('finalScore').value) : null; 
   const teacherNote = document.getElementById('teacherNote').value.trim(); 
-  if (!student || !testName || isNaN(testScore) || (testType==='نهائي' && isNaN(finalScore))) { 
-    alert('الرجاء ملء كل الحقول بشكل صحيح'); 
-    return; 
-  } 
+
+  // التحقق من الحقول بناءً على نوع الاختبار
+  if (!student || !testName || 
+      (testType !== 'نهائي' && isNaN(testScore)) || 
+      (testType === 'نهائي' && isNaN(finalScore))) {
+    alert('الرجاء ملء كل الحقول بشكل صحيح');
+    return;
+  }
+
+  // إذا الاختبار شهري، نمنع التسجيل إذا هناك اختبار نهائي لنفس المادة
+  if(testType !== 'نهائي') {
+    const hasFinal = tests.some(t => t.student === student && t.testName === testName && t.testType === 'نهائي');
+    if(hasFinal){
+      alert('تم تسجيل الاختبار النهائي لهذه المادة، لا يمكن إضافة اختبارات شهرية.');
+      return;
+    }
+  }
+
   if(editingIndex !== null){ 
     tests[editingIndex] = { student, testName, testType, testScore, finalScore, teacherNote }; 
     editingIndex = null; 
   } else { 
     tests.push({ student, testName, testType, testScore, finalScore, teacherNote }); 
   } 
+
   localStorage.setItem('tests', JSON.stringify(tests)); 
   localStorage.setItem('studentsList', JSON.stringify(studentsList)); 
   updateTestTable(); 
+
   document.getElementById('testName').value=''; 
   document.getElementById('testScore').value=''; 
   document.getElementById('finalScore').value=''; 
@@ -141,14 +157,14 @@ function updateTestTable() {
       const row = table.insertRow(); 
       row.insertCell(0).innerText = t.testName; 
       row.insertCell(1).innerText = t.testType==='نهائي' ? 'الاختبار النهائي' : t.testType; 
-      row.insertCell(2).innerText = t.testScore+'/40'; 
+      row.insertCell(2).innerText = t.testScore!==null ? t.testScore+'/40':'-'; 
       row.insertCell(3).innerText = t.finalScore!==null ? t.finalScore+'/30':'-'; 
       row.insertCell(4).innerText = t.teacherNote; 
       row.onclick = ()=>{
         document.getElementById('testName').value = t.testName; 
         document.getElementById('testType').value = t.testType; 
         toggleFinalScore(); 
-        document.getElementById('testScore').value = t.testScore; 
+        document.getElementById('testScore').value = t.testScore !== null ? t.testScore : ''; 
         document.getElementById('finalScore').value = t.finalScore !== null ? t.finalScore : ''; 
         document.getElementById('teacherNote').value = t.teacherNote; 
         editingIndex = index; 
